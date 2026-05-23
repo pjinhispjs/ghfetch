@@ -13,6 +13,10 @@ display_elements = [
     ("following", "Following"),
 ]
 
+# ascii scaling values
+hScale = 4
+vScale = int(hScale / 2)
+
 
 # adapted from https://github.com/joric/identicons
 def get_identicon(id):
@@ -28,9 +32,7 @@ def get_identicon(id):
 
 
 def display_identicon(color, icon):
-    hScale = 4
-    vScale = int(hScale / 2)
-    ascii_art = f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m"
+    ascii_art = ""
     for row in icon:
         rowString = " "
         for i in range(0, 5):
@@ -39,7 +41,6 @@ def display_identicon(color, icon):
             else:
                 rowString += " " * hScale
         ascii_art += (rowString + " \n") * vScale
-    ascii_art += "\x1b[0m"
     return ascii_art
 
 
@@ -58,6 +59,14 @@ def get_user_info(username):
         return None
 
 
+def get_displayed_info(user_info):
+    info_list = []
+    for item, desc in display_elements:
+        if item in user_info:
+            info_list.append(f"{desc}: {user_info[item]}")
+    return info_list
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} username")
@@ -67,8 +76,16 @@ if __name__ == "__main__":
     user_info = get_user_info(username)
     if user_info is not None:
         color, icon = get_identicon(user_info["id"])
-        print(display_identicon(color, icon))
+        ascii_art = display_identicon(color, icon).split("\n")
+        info_list = get_displayed_info(user_info)
 
-        for item, desc in display_elements:
-            if item in user_info:
-                print(f"{desc}: {user_info[item]}")
+        for i in range(max(len(ascii_art), len(info_list))):
+            if i < len(ascii_art) - 1:
+                sys.stdout.write(f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m")
+                sys.stdout.write(ascii_art[i])
+                sys.stdout.write("\x1b[0m")
+            else:
+                sys.stdout.write(" " * int(5 * hScale + 2))
+            if i < len(info_list):
+                sys.stdout.write(info_list[i])
+            sys.stdout.write("\n")

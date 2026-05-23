@@ -28,16 +28,19 @@ def get_identicon(id):
 
 
 def display_identicon(color, icon):
-    print(f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m")
+    hScale = 4
+    vScale = int(hScale / 2)
+    ascii_art = f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m"
     for row in icon:
         rowString = " "
         for i in range(0, 5):
             if row[i]:
-                rowString += "\u2588"
+                rowString += "\u2588" * hScale
             else:
-                rowString += " "
-        print(rowString)
-    print("\x1b[0m")
+                rowString += " " * hScale
+        ascii_art += (rowString + " \n") * vScale
+    ascii_art += "\x1b[0m"
+    return ascii_art
 
 
 def get_user_info(username):
@@ -62,10 +65,10 @@ if __name__ == "__main__":
 
     username = sys.argv[1]
     user_info = get_user_info(username)
-    color, icon = get_identicon(user_info["id"])
-    display_identicon(color, icon)
-
     if user_info is not None:
+        color, icon = get_identicon(user_info["id"])
+        print(display_identicon(color, icon))
+
         for item, desc in display_elements:
             if item in user_info:
                 print(f"{desc}: {user_info[item]}")

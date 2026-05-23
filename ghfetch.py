@@ -1,3 +1,4 @@
+#!/bin/env python3
 import colorsys
 import hashlib
 import sys
@@ -76,7 +77,7 @@ def get_displayed_name(user_info):
 
 def get_displayed_info(user_info):
     info_list = get_displayed_name(user_info)
-    info_list.append("-----")
+    info_list.append("-" * max(len(s) for s in info_list))
     for item, desc in display_elements:
         if item in user_info:
             if user_info[item] is not None and user_info[item] != "":
@@ -104,5 +105,8 @@ if __name__ == "__main__":
             else:
                 sys.stdout.write(" " * int(5 * hScale + 2))
             if i < len(info_list):
-                sys.stdout.write(info_list[i])
+                if i == 0:
+                    sys.stdout.write(f"\x1b[1m{info_list[i]}\x1b[0m")
+                else:
+                    sys.stdout.write(info_list[i])
             sys.stdout.write("\n")

@@ -27,6 +27,19 @@ def get_identicon(id):
     return (c, grid)
 
 
+def display_identicon(color, icon):
+    print(f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m")
+    for row in icon:
+        rowString = " "
+        for i in range(0, 5):
+            if row[i]:
+                rowString += "\u2588"
+            else:
+                rowString += " "
+        print(rowString)
+    print("\x1b[0m")
+
+
 def get_user_info(username):
     url = f"https://api.github.com/users/{username}"
     headers = {
@@ -50,14 +63,7 @@ if __name__ == "__main__":
     username = sys.argv[1]
     user_info = get_user_info(username)
     color, icon = get_identicon(user_info["id"])
-    for row in icon:
-        rowString = " "
-        for i in range(0, 5):
-            if row[i]:
-                rowString += "\u2588"
-            else:
-                rowString += " "
-        print(rowString)
+    display_identicon(color, icon)
 
     if user_info is not None:
         for item, desc in display_elements:

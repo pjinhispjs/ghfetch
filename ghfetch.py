@@ -5,9 +5,12 @@ import sys
 import requests
 
 display_elements = [
-    ("login", "Username"),
-    ("name", "Name"),
+    # ("login", "Username"),
+    # ("name", "Name"),
     ("bio", "Bio"),
+    ("company", "Company"),
+    ("location", "Location"),
+    ("blog", "Website"),
     ("public_repos", "Respositories"),
     ("followers", "Follows"),
     ("following", "Following"),
@@ -59,11 +62,25 @@ def get_user_info(username):
         return None
 
 
+def get_displayed_name(user_info):
+    nl = []
+    name = user_info["login"]
+    if user_info["name"]:
+        name = user_info["name"]
+        if user_info["email"]:
+            name += f" ({user_info["email"]})"
+        nl.append(user_info["login"])
+    nl.insert(0, name)
+    return nl
+
+
 def get_displayed_info(user_info):
-    info_list = []
+    info_list = get_displayed_name(user_info)
+    info_list.append("-----")
     for item, desc in display_elements:
         if item in user_info:
-            info_list.append(f"{desc}: {user_info[item]}")
+            if user_info[item] is not None and user_info[item] != "":
+                info_list.append(f"{desc}: {user_info[item]}")
     return info_list
 
 

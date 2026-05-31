@@ -1,6 +1,7 @@
 #!/bin/env python3
 import colorsys
 import hashlib
+import re
 import sys
 
 import requests
@@ -8,6 +9,11 @@ import requests
 # ascii scaling values
 hScale = 4
 vScale = int(hScale / 2)
+
+
+def visible_len(text):
+    color_pattern = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
+    return len(color_pattern.sub("", text))
 
 
 def get_user_repos(username):
@@ -81,6 +87,79 @@ def get_top_languages_with_percentage(username, top_n=5):
     )
 
     return sorted_languages[:top_n]
+
+
+def get_language_colors(languages):
+    colors = {}
+    num_languages = len(languages)
+    if num_languages == 0:
+        return colors
+
+    for i, lang in enumerate(languages):
+        hue = i / num_languages
+        lightness = 0.5
+        saturation = 0.7
+        rgb_float = colorsys.hls_to_rgb(hue, lightness, saturation)
+        rgb_int = tuple(int(x * 255) for x in rgb_float)
+        colors[lang] = rgb_int
+    return colors
+
+
+def render_language_bar(top_languages, bar_width=50):
+    if not top_languages:
+        return "", []
+
+    languages = [lang for lang, _ in top_languages]
+    lang_colors = get_language_colors(languages)
+
+    bar_string = ""
+    legend_entries = []
+
+    segment_widths = []
+    total_percentage = sum(percent for _, percent in top_languages)
+
+    scale_factor = 100 / total_percentage if total_percentage > 0 else 0
+
+    for lang, percent in top_languages:
+        scaled_percent = percent * scale_factor
+        width = int(round((scaled_percent / 100) * bar_width))
+        segment_widths.append((lang, width, lang_colors.get(lang, (255, 255, 255))))
+
+    current_width = sum(w for _, w, _ in segment_widths)
+    if current_width != bar_width:
+        diff = bar_width - current_width
+        for i in range(abs(diff)):
+            idx_to_adjust = -1
+            max_width_so_far = -1
+            for j, (lang, width, color) in enumerate(segment_widths):
+                if diff > 0:
+                    if width > max_width_so_far:
+                        max_width_so_far = width
+                        idx_to_adjust = j
+                else:
+                    if width > 0 and width > max_width_so_far:
+                        max_width_so_far = width
+                        idx_to_adjust = j
+
+            if idx_to_adjust != -1:
+                lang, width, color = segment_widths[idx_to_adjust]
+                segment_widths[idx_to_adjust] = (
+                    lang,
+                    width + (1 if diff > 0 else -1),
+                    color,
+                )
+
+    for lang, width, rgb in segment_widths:
+        r, g, b = rgb
+        bar_string += f"\x1b[38;2;{r};{g};{b}m{'\u2582' * width}\x1b[0m"
+
+    for lang, percent in top_languages:
+        r, g, b = lang_colors.get(lang, (255, 255, 255))
+        legend_entries.append(
+            f"\x1b[38;2;{r};{g};{b}m{'\u25cf'}\x1b[0m {lang} ({percent:.0f}%)"
+        )
+
+    return bar_string, legend_entries
 
 
 # adapted from https://github.com/joric/identicons
@@ -168,13 +247,6 @@ if __name__ == "__main__":
         ascii_art = display_identicon(color, icon).split("\n")
         info_list = get_displayed_info(user_info)
 
-        top_languages = get_top_languages_with_percentage(username)
-        if top_languages:
-            info_list.append("")
-            info_list.append("Languages:")
-            for lang, percent in top_languages:
-                info_list.append(f"  {lang}: {percent:.2f}%")
-
         for i in range(max(len(ascii_art), len(info_list))):
             if i < len(ascii_art) - 1:
                 sys.stdout.write(f"\x1b[38;2;{color[0]};{color[1]};{color[2]}m")
@@ -187,4 +259,18 @@ if __name__ == "__main__":
                     sys.stdout.write(f"\x1b[1m{info_list[i]}\x1b[0m")
                 else:
                     sys.stdout.write(info_list[i])
+            sys.stdout.write("\n")
+
+        top_languages = get_top_languages_with_percentage(username)
+        bar_width = 50
+        if top_languages:
+            bar_string, legend_entries = render_language_bar(top_languages, bar_width)
+            print(" " + bar_string)
+            p = 0
+            for lang in legend_entries:
+                if (p + visible_len(lang) + 1) > bar_width:
+                    sys.stdout.write("\n")
+                    p = 0
+                p += visible_len(lang) + 1
+                sys.stdout.write(" " + lang)
             sys.stdout.write("\n")
